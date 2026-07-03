@@ -1,0 +1,92 @@
+import { setupAuth } from "./auth.js";
+import { setupNavigation } from "./ui.js";
+import { addNote, loadNotes } from "./notes.js";
+import { addAppointment, loadAppointments, setupAppointmentForm } from "./appointments.js";
+import { addTask, loadTasks } from "./tasks.js";
+import { addMedication, loadMedications } from "./medications.js";
+import { addDirectoryContact, loadDirectoryContacts } from "./directory.js";
+import { renderDashboard } from "./dashboard.js";
+import { renderFamily } from "./family.js";
+import { setupSearch } from "./search.js";
+import { setupAdmin, loadAdminPanel } from "./admin.js";
+import { appState } from "./state.js";
+
+document.getElementById("addNote").onclick = addNote;
+document.getElementById("addAppt").onclick = addAppointment;
+document.getElementById("addTask").onclick = addTask;
+document.getElementById("addMedication").onclick = addMedication;
+document.getElementById("addDirectoryContact").onclick = addDirectoryContact;
+
+setupNavigation();
+setupSearch();
+setupAdmin();
+setupAppointmentForm();
+
+async function loadEverything(user, profile) {
+  appState.currentUser = user;
+  appState.currentProfile = profile;
+
+  await loadDirectoryContacts();
+
+  await Promise.all([
+    loadAppointments(),
+    loadTasks(),
+    loadNotes(),
+    loadMedications()
+  ]);
+
+  renderDashboard();
+  renderFamily();
+
+  if (profile && profile.role === "admin") {
+    await loadAdminPanel();
+  }
+}
+
+function clearEverything() {
+  appState.currentUser = null;
+  appState.currentProfile = null;
+  appState.appointments = [];
+  appState.tasks = [];
+  appState.notes = [];
+  appState.medications = [];
+  appState.directoryContacts = [];
+  appState.users = [];
+
+  const idsToClear = [
+    "appointments",
+    "todayAppointments",
+    "todayTransportation",
+    "waitingForRide",
+    "tasks",
+    "openTasks",
+    "notes",
+    "recentNotes",
+    "medications",
+    "inactiveMedications",
+    "refillWatch",
+    "dashboardRefillWatch",
+    "needsAttention",
+    "nextUp",
+    "familyGrid",
+    "searchResults",
+    "adminPanel",
+    "grandmaMedications",
+    "grandpaMedications",
+    "directoryContacts"
+  ];
+
+  idsToClear.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = "";
+  });
+}
+
+setupAuth(
+  async (user, profile) => {
+    await loadEverything(user, profile);
+  },
+  () => {
+    clearEverything();
+  }
+);
